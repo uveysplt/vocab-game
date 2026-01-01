@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Vocabulary Master – B2</title>
+<style>
+  body {
+    background:#0f172a;
+    color:#e5e7eb;
+    font-family:Arial, sans-serif;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    height:100vh;
+  }
+  .card {
+    background:#020617;
+    padding:24px;
+    border-radius:12px;
+    width:460px;
+    box-shadow:0 0 25px rgba(0,0,0,.5);
+  }
+  h2 { margin-bottom:12px; display:flex; align-items:center; gap:12px; }
+  .speaker {
+    font-size:24px;
+    cursor:pointer;
+    opacity:.7;
+    transition:opacity .2s;
+  }
+  .speaker:hover { opacity:1; }
+  .option {
+    background:#1e293b;
+    padding:10px;
+    margin:8px 0;
+    border-radius:6px;
+    cursor:pointer;
+  }
+  .option:hover { background:#334155; }
+  .correct { background:#166534 !important; }
+  .wrong { background:#7f1d1d !important; }
+  .example {
+    margin-top:12px;
+    font-size:14px;
+    opacity:.9;
+  }
+  button {
+    margin-top:14px;
+    width:100%;
+    padding:10px;
+    border:none;
+    border-radius:6px;
+    background:#2563eb;
+    color:white;
+    cursor:pointer;
+  }
+  .score {
+    margin-top:10px;
+    font-size:13px;
+    text-align:center;
+    opacity:.8;
+  }
+</style>
+</head>
+<body>
+
+<div class="card">
+  <h2>
+    <span id="word"></span>
+    <span class="speaker" onclick="speak()" title="Listen">🔊</span>
+  </h2>
+  <div id="options"></div>
+  <div class="example" id="example"></div>
+  <button onclick="next()">Next</button>
+  <div class="score" id="score"></div>
+</div>
+
+<script>
+const words = [
+  {
+    w:"crash",
+    d:"A sudden and violent accident or failure",
+    s:"The system crashed during the online payment process."
+  },
+  {
+    w:"regulate",
+    d:"To control something using rules or laws",
+    s:"The government regulates financial markets closely."
+  },
+  {
+    w:"effect",
+    d:"A result caused by something else",
+    s:"The new law had a strong effect on small businesses."
+  },
+  {
+    w:"affect",
+    d:"To influence or change something",
+    s:"Stress can negatively affect your health."
+  },
+  {
+    w:"contain",
+    d:"To have something inside",
+    s:"This document contains confidential information."
+  },
+  {
+    w:"benefit",
+    d:"An advantage or positive result",
+    s:"One benefit of exercise is improved mental health."
+  },
+  {
+    w:"complain",
+    d:"To express dissatisfaction",
+    s:"Customers complained about the poor service."
+  },
+  {
+    w:"commit",
+    d:"To decide or promise seriously",
+    s:"She committed herself to finishing the project on time."
+  },
+  {
+    w:"accuracy",
+    d:"How correct or precise something is",
+    s:"The accuracy of the data is essential for analysis."
+  },
+  {
+    w:"revenue",
+    d:"Money a business earns",
+    s:"The company increased its revenue this year."
+  },
+  {
+    w:"drawback",
+    d:"A disadvantage",
+    s:"One drawback of the job is long working hours."
+  },
+  {
+    w:"consequence",
+    d:"A result of an action",
+    s:"Every decision has consequences."
+  },
+  {
+    w:"motivate",
+    d:"To encourage someone to act",
+    s:"Good managers motivate their teams effectively."
+  },
+  {
+    w:"journey",
+    d:"Travel from one place to another",
+    s:"The journey took longer due to bad weather."
+  },
+  {
+    w:"altitude",
+    d:"Height above sea level",
+    s:"Athletes train at high altitude to improve endurance."
+  }
+];
+
+let score = 0;
+let current;
+
+function getProgress() {
+  const data = localStorage.getItem('vocabProgress');
+  return data ? JSON.parse(data) : {};
+}
+
+function saveProgress(word) {
+  const progress = getProgress();
+  progress[word] = (progress[word] || 0) + 1;
+  localStorage.setItem('vocabProgress', JSON.stringify(progress));
+  return progress[word];
+}
+
+function getAvailableWords() {
+  const progress = getProgress();
+  return words.filter(w => (progress[w.w] || 0) < 5);
+}
+
+function speak() {
+  if (!current) return;
+  const utterance = new SpeechSynthesisUtterance(current.w);
+  utterance.lang = 'en-US';
+  utterance.rate = 0.8;
+  speechSynthesis.cancel();
+  speechSynthesis.speak(utterance);
+}
+
+function next() {
+  document.getElementById("example").innerText = "";
+  document.getElementById("options").innerHTML = "";
+
+  const available = getAvailableWords();
+  if (available.length === 0) {
+    document.getElementById("word").innerText = "🎉 Congratulations!";
+    document.getElementById("example").innerText = "You've mastered all words! Reset progress to start over.";
+    const btn = document.createElement("button");
+    btn.innerText = "Reset Progress";
+    btn.onclick = () => {
+      localStorage.removeItem('vocabProgress');
+      location.reload();
+    };
+    document.getElementById("options").appendChild(btn);
+    return;
+  }
+
+  current = available[Math.floor(Math.random()*available.length)];
+  document.getElementById("word").innerText = "WORD: " + current.w;
+
+  let choices = [current.d];
+  while (choices.length < 4) {
+    let d = words[Math.floor(Math.random()*words.length)].d;
+    if (!choices.includes(d)) choices.push(d);
+  }
+  choices.sort(() => Math.random() - 0.5);
+
+  choices.forEach(choice => {
+    let div = document.createElement("div");
+    div.className = "option";
+    div.innerText = choice;
+    div.onclick = () => {
+      if (choice === current.d) {
+        div.classList.add("correct");
+        score++;
+        const count = saveProgress(current.w);
+        const mastered = words.length - getAvailableWords().length;
+        document.getElementById("example").innerText =
+          "Example: " + current.s + (count >= 5 ? " ✅ Mastered!" : " (" + count + "/5)");
+        document.getElementById("score").innerText =
+          "Score: " + score + " | Mastered: " + mastered + "/" + words.length;
+      } else {
+        div.classList.add("wrong");
+        document.getElementById("example").innerText =
+          "Example: " + current.s;
+        document.getElementById("score").innerText =
+          "Score: " + score;
+      }
+    };
+    document.getElementById("options").appendChild(div);
+  });
+  
+  setTimeout(() => speak(), 300);
+}
+
+next();
+</script>
+
+</body>
+</html>
